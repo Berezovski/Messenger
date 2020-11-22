@@ -1,0 +1,50 @@
+﻿<Window x:Class="Messenger.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Messenger"
+        mc:Ignorable="d"
+        Title="Месенджер" Height="338" Width="560">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="11*"/>
+            <RowDefinition Height="113*"/>
+            <RowDefinition Height="21*"/>
+            <RowDefinition Height="98*"/>
+            <RowDefinition Height="6*"/>
+            <RowDefinition Height="23*"/>
+            <RowDefinition Height="8*"/>
+            <RowDefinition Height="19*"/>
+            <RowDefinition Height="10*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="11*"/>
+            <ColumnDefinition Width="163*"/>
+            <ColumnDefinition Width="10*"/>
+            <ColumnDefinition Width="74*"/>
+            <ColumnDefinition Width="5*"/>
+            <ColumnDefinition Width="74*"/>
+            <ColumnDefinition Width="8*"/>
+            <ColumnDefinition Width="198*"/>
+            <ColumnDefinition Width="10*"/>
+        </Grid.ColumnDefinitions>
+        <TextBox x:Name="TextBox_Chat" TextWrapping="Wrap" Grid.ColumnSpan="7" Grid.RowSpan="3" IsReadOnly="True" Grid.Column="1" Grid.Row="1"/>
+        <TextBox x:Name="TextBox_Message" TextWrapping="Wrap" Text="Сообщение" KeyDown="TextBox_Message_KewDown" Grid.ColumnSpan="8" Grid.Row="5" VerticalContentAlignment="Center" Margin="11,0,0.2,0.2" IsEnabled="False"/>
+        <Button x:Name="Button_Connect" Content="Подключиться" Click="Button_Connect_Click" Grid.Column="3" Grid.ColumnSpan="4" Grid.Row="2"/>
+        <Button x:Name="Button_ToSend" Content="Отправить" Margin="11,7.8,0.4,0" VerticalAlignment="Top" Click="Button_ToSend_Click" RenderTransformOrigin="0.5,0.5" Grid.Row="6" Grid.RowSpan="2" Height="19" Grid.ColumnSpan="2" IsEnabled="False">
+            <Button.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform/>
+                    <SkewTransform/>
+                    <RotateTransform Angle="-0.083"/>
+                    <TranslateTransform/>
+                </TransformGroup>
+            </Button.RenderTransform>
+        </Button>
+        <Button x:Name="Button_Download" Content="Загрузить все присланные файлы" Margin="0.2,7.8,0.2,0" VerticalAlignment="Top" Click="Button_Download_Click" Grid.Column="7" Grid.Row="6" Grid.RowSpan="2" Height="19" IsEnabled="False"/>
+        <Button x:Name="Button_ToSendFileImage" Content="-&gt;Фото" Margin="0,7.8,0.6,0" VerticalAlignment="Top" Click="Button_ToSendFileImage_Click" Grid.Column="3" Grid.Row="6" Grid.RowSpan="2" Height="19" IsEnabled="False"/>
+        <Button x:Name="Button_ToSendFileMusic" Content="-&gt;Музыку" Margin="4.4,7.8,0.8,0" VerticalAlignment="Top" Click="Button_ToSendFileMusic_Click" Grid.Column="4" Grid.Row="6" Grid.RowSpan="2" Height="19" Grid.ColumnSpan="2" IsEnabled="False"/>
+
+    </Grid>
+</Window>
