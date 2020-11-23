@@ -237,7 +237,7 @@ namespace Messenger
             {
                 return ECB_Encrypt(text, userkey);
             }
-            if (text.Length / (processorCount * 8) == 0) // многопоточность бесполезна
+            if (text.Length / (processorCount * 8) <= 1) // многопоточность бесполезна (чтобы в последнем потоке было минимум 2 блока!)
             {
                 return ECB_Encrypt(text, userkey);
             }
@@ -292,7 +292,7 @@ namespace Messenger
             {
                 return ECB_Decrypt(text, userkey);
             }
-            if (text.Length / (processorCount * 8) == 0) // многопоточность бесполезна
+            if (text.Length / (processorCount * 8) <= 1) // многопоточность бесполезна (чтобы в последнем потоке было минимум 2 блока!)
             {
                 return ECB_Decrypt(text, userkey);
             }
