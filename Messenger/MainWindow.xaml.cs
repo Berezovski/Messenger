@@ -24,12 +24,16 @@ namespace Messenger
     /// </summary>
     public partial class MainWindow : Window
     {
-        WorkWithMessage _workWithMessage;
+        private WorkWithMessage _workWithMessage;
 
         public MainWindow()
         {
             InitializeComponent();
         }
+
+        /*================
+         *    События
+         ================*/
 
         private void Button_ToSend_Click(object sender, RoutedEventArgs e)
         {
@@ -53,17 +57,13 @@ namespace Messenger
 
         private void Button_Connect_Click(object sender, RoutedEventArgs e)
         {
-            string name;
-            do
-            {
-                name = Microsoft.VisualBasic.Interaction.InputBox("Введите ваш ник (меньше 6 символов): ");
-            }
-            while ((name.Length > 6)||(name.Length == 0));
             Button_Connect.IsEnabled = false;
+            _workWithMessage = new WorkWithMessage(GetUserNameFromDialog());
 
-            _workWithMessage = new WorkWithMessage(name, 3);
+            _workWithMessage.SetPrivateKeyForMessage(GetPrivateKeyFromDialog());
+            _workWithMessage.SetIPEndPoint(GetIpAdressAndPortFromDialog());
 
-            byte[] bt = new byte[_workWithMessage.MessageLength];
+            byte[] bt = new byte[_workWithMessage.MaxMessageLength];
             try
             {
                 _workWithMessage.SocketConnect();
@@ -94,10 +94,10 @@ namespace Messenger
            
             byte[] userFile = FileWork.ReadFullFile(filePathStr);
 
-            if (userFile.Length > _workWithMessage.MessageLength)
+            if (userFile.Length > _workWithMessage.MaxMessageLength)
             {
                 AppendMyMessage("/Внимание! Размер вашего сообщения слишком большой!\\" + " Максимум можно " 
-                    + _workWithMessage.MessageLength + " байт.");
+                    + _workWithMessage.MaxMessageLength + " байт.");
                 return;
             }
 
@@ -118,10 +118,10 @@ namespace Messenger
 
             byte[] userFile = FileWork.ReadFullFile(filePathStr);
 
-            if (userFile.Length >= _workWithMessage.MessageLength)
+            if (userFile.Length >= _workWithMessage.MaxMessageLength)
             {
                 AppendMyMessage("/Внимание! Размер вашего сообщения слишком большой!\\" + " Максимум можно "
-                    + _workWithMessage.MessageLength + " байт.");
+                    + _workWithMessage.MaxMessageLength + " байт.");
                 return;
             }
 
@@ -139,7 +139,7 @@ namespace Messenger
        *  Ключевые функции
           ================*/
 
-        async void SocketStartWorkAsync()
+        private async void SocketStartWorkAsync()
         {
             byte[] bt;
 
@@ -152,44 +152,64 @@ namespace Messenger
             StartReadingMesssageAsync();
         }
 
-        async void StartReadingMesssageAsync()
+        private async void StartReadingMesssageAsync()
         {
-            DES chipher = new DES(new byte[] { 1 });
+            Blowfish blowfish = new Blowfish(123456789);
 
             while (true)
             {
                 byte[] bt;
                 bt = await Task.Run(() => StartReadingMesssage());
 
+                // Отправленно "ничего", значит пользователь вышел
                 if (bt == null)
                 {
                     Close();
                     return;
                 }
 
-                bt = chipher.ECB_Dechipher(bt, _workWithMessage.OurKey);
+                bt = blowfish.ECB_Decrypt(bt, _workWithMessage.OurKeyForCrypt);
 
+                // Отправлено изображение
                 if ((bt[0] == '/') && (bt[1] == 'i'))
                 {
-                    _workWithMessage.TakeDecryptedImageMessage(bt);
+                    _workWithMessage.TakeAndAddDecryptedImageFromMessage(bt);
                     AppendFriendMessage("/Отправил файл image\\" + " длинной " + (bt.Length - 2).ToString() + " байт\n");
                     continue;
                 }
 
+                // Отправлена музыка
                 if ((bt[0] == '/') && (bt[1] == 'm'))
                 {
-                    _workWithMessage.TakeDecryptedMusicMessage(bt);
+                    _workWithMessage.TakeAndAddDecryptedMusicFromMessage(bt);
                     AppendFriendMessage("/Отправил файл mp3\\" + " длинной " + (bt.Length - 2).ToString() + " байт\n");
                     continue;
                 }
 
+                // Отправлен просто текст от собеседника
                 AppendFriendMessage(bt);
             }
         }
 
-        byte[] StartReadingMesssage()
+        private byte[] SocketStartWork()
         {
-            byte[] bt = new byte[_workWithMessage.MessageLength];
+            byte[] bt = new byte[_workWithMessage.MaxMessageLength];
+
+
+            while (!_workWithMessage.GetSocket())
+            {
+                MessageBox.Show("К сожалению создать сокет по такому ip не вышло!\nВам придётся ввести заново адрес", "Ошибочка :(");
+                _workWithMessage.SetIPEndPoint(GetIpAdressAndPortFromDialog());
+            }
+            _workWithMessage.SendInfoMessage();
+
+            _workWithMessage.SocketReceive(bt);
+            return bt;
+        }
+
+        private byte[] StartReadingMesssage()
+        {
+            byte[] bt = new byte[_workWithMessage.MaxMessageLength];
             int newSize = _workWithMessage.SocketReceive(bt);
 
             if (newSize == -1)
@@ -201,51 +221,83 @@ namespace Messenger
             return bt;
         }
 
-        byte[] SocketStartWork()
+        /*=========================
+          * Вспомогательные функции
+          =========================*/
+
+        private string GetUserNameFromDialog()
         {
-            byte[] bt = new byte[_workWithMessage.MessageLength];
-
-            _workWithMessage.GetSocket();
-            _workWithMessage.SendInfoMessage();
-
-            _workWithMessage.SocketReceive(bt);
-            return bt;
+            string name;
+            do
+            {
+                name = Microsoft.VisualBasic.Interaction.InputBox("Введите ваш ник (меньше 6 символов): ");
+            }
+            while ((name.Length > 6) || (name.Length == 0));
+            return name;
         }
 
-       /*=========================
-         * Вспомогательные функции
-         =========================*/
+        private IPEndPoint GetIpAdressAndPortFromDialog()
+        {
+            string checkIp;
+            IPAddress trueAdress;
+            do
+            {
+                checkIp = Microsoft.VisualBasic.Interaction.InputBox("Введите ip адресс для создания (подключения): ");
+            }
+            while (!IPAddress.TryParse(checkIp, out trueAdress));
 
+            string checkPort;
+            int port;
+            do
+            {
+                checkPort = Microsoft.VisualBasic.Interaction.InputBox("Введите порт для создания (подключения): ");
+            }
+            while (!int.TryParse(checkPort, out port));
 
-        void AppendFriendMessage(byte[] message)
+            return new IPEndPoint(trueAdress, port);
+        }
+
+        private ulong GetPrivateKeyFromDialog()
+        {
+            string checkKey;
+            ulong key;
+            do
+            {
+                checkKey = Microsoft.VisualBasic.Interaction.InputBox("Введите ваш приватный ключ (натуральное число): ");
+            }
+            while (!ulong.TryParse(checkKey, out key));
+            return key;
+        }
+
+        private void AppendFriendMessage(byte[] message)
         {
             StringBuilder strBl = new StringBuilder();
             strBl.Append(_workWithMessage.FriendNickName).Append(": ").Append(Encoding.UTF8.GetString(message)).Append("\n");
             TextBox_Chat.AppendText(strBl.ToString());
         }
 
-        void AppendMyMessage(byte[] message)
+        private void AppendMyMessage(byte[] message)
         {
             StringBuilder strBl = new StringBuilder();
             strBl.Append(_workWithMessage.MyNickName).Append(": ").Append(Encoding.UTF8.GetString(message)).Append("\n");
             TextBox_Chat.AppendText(strBl.ToString());
         }
 
-        void AppendFriendMessage(string message)
+        private void AppendFriendMessage(string message)
         {
             StringBuilder strBl = new StringBuilder();
             strBl.Append(_workWithMessage.FriendNickName).Append(": ").Append(message).Append("\n");
             TextBox_Chat.AppendText(strBl.ToString());
         }
 
-        void AppendMyMessage(string message)
+        private void AppendMyMessage(string message)
         {
             StringBuilder strBl = new StringBuilder();
             strBl.Append(_workWithMessage.MyNickName).Append(": ").Append(message).Append("\n");
             TextBox_Chat.AppendText(strBl.ToString());
         }
 
-        void AllIsEnabledTrue()
+        private void AllIsEnabledTrue()
         {
             Button_Download.IsEnabled = true;
             Button_ToSend.IsEnabled = true;
